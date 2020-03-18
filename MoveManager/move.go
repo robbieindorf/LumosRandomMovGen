@@ -1,4 +1,4 @@
-package main
+package MoveManager
 
 import (
 	"bytes"
@@ -57,7 +57,7 @@ func getMoveMode(populatedDriveAddr, emptyDriveAddr []int) int {
 	return moveMode
 }
 
-func generateMove(partition string, inventory []MediaContainer) (MoveRequest, error){
+func generateMove(partition string, inventory []main.MediaContainer) (main.MoveRequest, error){
 	populatedSlotAddr := []int{}
 	emptySlotAddr := []int{}
 	populatedDriveAddr := []int{}
@@ -83,7 +83,7 @@ func generateMove(partition string, inventory []MediaContainer) (MoveRequest, er
 
 	sourceAddr, destAddr := getAddrByMode(moveMode, populatedSlotAddr, emptySlotAddr, populatedDriveAddr, emptyDriveAddr)
 
-	move := MoveRequest{
+	move := main.MoveRequest{
 		Source:    sourceAddr,
 		Dest:      destAddr,
 		Partition: partition,
@@ -92,14 +92,14 @@ func generateMove(partition string, inventory []MediaContainer) (MoveRequest, er
 	return move, nil
 }
 
-func sendMove(ip string, move MoveRequest) (string, error) {
+func sendMove(ip string, move main.MoveRequest) (string, error) {
 
 	requestBody, err := json.Marshal(move)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := http.Post("http://" + ip + movesURL, "application/json", bytes.NewBuffer(requestBody))
+	resp, err := http.Post("http://" + ip +main.movesURL, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return "", err
 	}
@@ -109,7 +109,7 @@ func sendMove(ip string, move MoveRequest) (string, error) {
 		return "", err
 	}
 
-	var moveResult Move
+	var moveResult main.Move
 	json.Unmarshal(body, &moveResult)
 
 	return strconv.FormatInt(moveResult.ID, 10), nil
@@ -119,7 +119,7 @@ func checkMoveStatus(wg *sync.WaitGroup, ip , moveID string, successCountChan, f
 	var moveStatus string
 
 	for moveStatus != "Successful" && moveStatus != "Failed" {
-		resp, err := http.Get("http://" + ip + movesURL + "/" + moveID)
+		resp, err := http.Get("http://" + ip + main.movesURL + "/" + moveID)
 		if err != nil {
 			log.Println("error checking move status: ", err)
 		}
@@ -129,7 +129,7 @@ func checkMoveStatus(wg *sync.WaitGroup, ip , moveID string, successCountChan, f
 			log.Println("error sending move request: ", err)
 		}
 
-		var moveResult []Move
+		var moveResult []main.Move
 		err = json.Unmarshal(body, &moveResult)
 
 		moveStatus = moveResult[0].Status

@@ -1,4 +1,4 @@
-package main
+package models
 
 type MediaContainer struct {
 	Type         string 	   `json:"elementType"`

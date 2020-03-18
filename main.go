@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"lumosRandomMoves/MoveManager"
 	"math/rand"
 	"os"
 	"strconv"
@@ -10,12 +11,6 @@ import (
 	"time"
 
 	//"time"
-)
-
-const(
-	baseApiPath  = ":8080/api"
-	inventoryURL = baseApiPath + "/inventory"
-	movesURL 	 = baseApiPath + "/moves"
 )
 
 // Args -l {Library IP} / -t {How long to run moves} / -m {Number of moves} / -p {Which partition to do moves for}
@@ -73,18 +68,18 @@ func main() {
 		log.Println("Partition: " + partition)
 		log.Println("Move Count: " + numberOfMoves)
 		for i := 0; i < parsedNumMoves; i++ {
-			inventory, err := getInventory(libraryIP, partition)
+			inventory, err := MoveManager.getInventory(libraryIP, partition)
 			if err != nil {
 				log.Println("Error: ", err)
 				continue
 			}
 
-			move, err := generateMove(partition, inventory)
+			move, err := MoveManager.generateMove(partition, inventory)
 
-			moveID, err := sendMove(libraryIP, move)
+			moveID, err := MoveManager.sendMove(libraryIP, move)
 
 			log.Println("#" + strconv.Itoa(i+1) + " - Move " + moveID + ": " + strconv.Itoa(move.Source) + " -> " + strconv.Itoa(move.Dest))
-			go checkMoveStatus(&wg, libraryIP, moveID, successfulMovesChan, failedMovesChan)
+			go MoveManager.checkMoveStatus(&wg, libraryIP, moveID, successfulMovesChan, failedMovesChan)
 			wg.Add(1)
 
 		}
