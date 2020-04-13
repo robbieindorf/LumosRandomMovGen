@@ -17,13 +17,13 @@ func getInventory (ip, partitionName string) ([]MediaContainer, error){
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return []MediaContainer{}, errors.New("error parsing inventory")
+		return []MediaContainer{}, errors.New("error parsing inventory body")
 	}
 
 	var inventory []MediaContainer
 	err = json.Unmarshal(body, &inventory)
 	if err != nil {
-		return []MediaContainer{}, errors.New("error parsing request body")
+		return []MediaContainer{}, errors.New("error unmarshalling inventory")
 	}
 
 	return inventory, nil

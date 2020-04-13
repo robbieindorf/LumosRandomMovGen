@@ -137,29 +137,46 @@ func sendMove(ip string, move MoveRequest) (string, error) {
 	}
 
 	var moveResult Move
-	json.Unmarshal(body, &moveResult)
+	err = json.Unmarshal(body, &moveResult)
+	if err != nil {
+		return "", err
+	}
 
 	return strconv.FormatInt(moveResult.ID, 10), nil
 }
 
 func checkMoveStatus(wg *sync.WaitGroup, ip , moveID string, successCountChan, failCountChan chan int) {
 	var moveStatus string
+	checkCount := 0
 
-	for moveStatus != "Successful" && moveStatus != "Failed" {
+	for moveStatus != "Successful" && moveStatus != "Failed" && checkCount < 5{
 		resp, err := http.Get("http://" + ip + movesURL + "/" + moveID)
 		if err != nil {
-			log.Println("error checking move status: ", err)
+			log.Println("#" + moveID + " - Move" + moveID + " : error checking move status: ", err)
+			checkCount++
+			time.Sleep(30 * time.Second)
+			continue
 		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Println("error sending move request: ", err)
+			log.Println("#" + moveID + " - Move" + moveID + " :error parsing move status body: ", err)
+			checkCount++
+			time.Sleep(30 * time.Second)
+			continue
 		}
 
 		var moveResult []Move
 		err = json.Unmarshal(body, &moveResult)
+		if err != nil {
+			log.Println("#" + moveID + " - Move" + moveID + " :error unmarshalling move status: ", err)
+			checkCount++
+			time.Sleep(30 * time.Second)
+			continue
+		}
 
 		moveStatus = moveResult[0].Status
+		checkCount++
 		time.Sleep(30 * time.Second)
 	}
 
