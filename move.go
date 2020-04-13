@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -12,31 +13,54 @@ import (
 	"time"
 )
 
-func getRandomAddr(addrPool []int) int {
-	randMediaIndex := rand.Intn(len(addrPool))
-	addr := addrPool[randMediaIndex]
-
-	return addr
+func getRandomAddr(addrPool []int) (int, error) {
+	var addr int
+	if len(addrPool) > 0 {
+		randMediaIndex := rand.Intn(len(addrPool))
+		addr = addrPool[randMediaIndex]
+	} else {
+		return 0, errors.New("error: no available addresses")
+	}
+	return addr, nil
 }
 
-func getAddrByMode(mode int, populatedSlotAddr, emptySlotAddr, populatedDriveAddr, emptyDriveAddr []int) (int, int) {
+func getAddrByMode(mode int, populatedSlotAddr, emptySlotAddr, populatedDriveAddr, emptyDriveAddr []int) (int, int, error) {
 
 	var source int
 	var dest int
+	var err error
 
 	switch mode {
 	case 1:
-		source = getRandomAddr(populatedSlotAddr)
-		dest = getRandomAddr(emptySlotAddr)
+		source, err = getRandomAddr(populatedSlotAddr)
+		if err != nil {
+			return 0, 0, errors.New(err.Error() + ": populated slot address")
+		}
+		dest, err = getRandomAddr(emptySlotAddr)
+		if err != nil {
+			return 0, 0, errors.New(err.Error() + ": empty slot address")
+		}
 	case 2:
-		source = getRandomAddr(populatedSlotAddr)
-		dest = getRandomAddr(emptyDriveAddr)
+		source, err = getRandomAddr(populatedSlotAddr)
+		if err != nil {
+			return 0, 0, errors.New(err.Error() + ": populated slot address")
+		}
+		dest, err = getRandomAddr(emptyDriveAddr)
+		if err != nil {
+			return 0, 0, errors.New(err.Error() + ": empty drive address")
+		}
 	case 3:
-		source = getRandomAddr(populatedDriveAddr)
-		dest = getRandomAddr(emptySlotAddr)
+		source, err = getRandomAddr(populatedDriveAddr)
+		if err != nil {
+			return 0, 0, errors.New(err.Error() + ": populated drive address")
+		}
+		dest, err = getRandomAddr(emptySlotAddr)
+		if err != nil {
+			return 0, 0, errors.New(err.Error() + ": empty slot address")
+		}
 	}
 
-	return source, dest
+	return source, dest, nil
 }
 
 // Modes: Slot -> Slot : 1 / Slot -> Drive : 2 / Drive -> Slot : 3
@@ -81,7 +105,10 @@ func generateMove(partition string, inventory []MediaContainer) (MoveRequest, er
 
 	moveMode := getMoveMode(populatedDriveAddr, emptyDriveAddr)
 
-	sourceAddr, destAddr := getAddrByMode(moveMode, populatedSlotAddr, emptySlotAddr, populatedDriveAddr, emptyDriveAddr)
+	sourceAddr, destAddr, err := getAddrByMode(moveMode, populatedSlotAddr, emptySlotAddr, populatedDriveAddr, emptyDriveAddr)
+	if err != nil {
+		return MoveRequest{}, err
+	}
 
 	move := MoveRequest{
 		Source:    sourceAddr,

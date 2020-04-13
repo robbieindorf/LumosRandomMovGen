@@ -38,6 +38,7 @@ func main() {
 			fmt.Println("-l {Library IP}")
 			fmt.Println("-m {Number of Moves}")
 			fmt.Println("-p {Partition Name} (default: Auto Partition)")
+			return
 		}
 	}
 
@@ -53,8 +54,8 @@ func main() {
 	successfulMovesChan <- successfulMoves
 	failedMovesChan <- failedMoves
 
-	if numberOfMoves != "" {
-		currentTime := time.Now().Format("01-02-06-15:04:05PM")
+	if numberOfMoves != "" && libraryIP != ""{
+		currentTime := time.Now().Format("2006-01-02T15-04-05")
 		logFileName := "moves_" + currentTime + ".log"
 		file, err := os.OpenFile("./"+logFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
@@ -80,8 +81,16 @@ func main() {
 			}
 
 			move, err := generateMove(partition, inventory)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
 
 			moveID, err := sendMove(libraryIP, move)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
 
 			log.Println("#" + strconv.Itoa(i+1) + " - Move " + moveID + ": " + strconv.Itoa(move.Source) + " -> " + strconv.Itoa(move.Dest))
 			go checkMoveStatus(&wg, libraryIP, moveID, successfulMovesChan, failedMovesChan)
