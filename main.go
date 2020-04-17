@@ -5,8 +5,10 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	//"time"
@@ -40,7 +42,7 @@ func main() {
 		case "--help":
 			fmt.Println("-l {Library IP}")
 			fmt.Println("-m {Number of Moves}")
-			fmt.Println("-t {Execution Time ex.5h}")
+			fmt.Println("-t {Execution Time ex.5h30m25s}")
 			fmt.Println("-p {Partition Name} (default: Auto Partition)")
 			return
 		}
@@ -77,6 +79,7 @@ func main() {
 
 	successfulMovesChan <- successfulMoves
 	failedMovesChan <- failedMoves
+	SetupCloseHandler(successfulMovesChan, failedMovesChan)
 
 	currentTime := time.Now().Format("2006-01-02T15-04-05")
 	logFileName := "moves_" + currentTime + ".log"
@@ -98,8 +101,7 @@ func main() {
 				log.Println("#" + strconv.Itoa(i+1) + ": error: ", err)
 				continue
 			}
-			go checkMoveStatus(&wg, libraryIP, moveID, successfulMovesChan, failedMovesChan)
-			wg.Add(1)
+			checkMoveStatus(&wg, libraryIP, moveID, successfulMovesChan, failedMovesChan)
 		}
 	} else {
 		log.Println("Time Limit: " + parsedTimeLimit.String())
@@ -112,15 +114,12 @@ func main() {
 				count++
 				continue
 			}
-			go checkMoveStatus(&wg, libraryIP, moveID, successfulMovesChan, failedMovesChan)
-			wg.Add(1)
+			checkMoveStatus(&wg, libraryIP, moveID, successfulMovesChan, failedMovesChan)
 			count++
 		}
 	}
 
-	wg.Wait()
-
-	log.Println("Moves Count: ", parsedNumMoves, " / Successful: ", <- successfulMovesChan, " / Failed: ", <- failedMovesChan)
+	log.Println("Successful: ", <- successfulMovesChan, " / Failed: ", <- failedMovesChan)
 }
 
 func initMoveWorkflow(libraryIP, partition string, moveNum int) (string, error){
@@ -141,6 +140,16 @@ func initMoveWorkflow(libraryIP, partition string, moveNum int) (string, error){
 
 	log.Println("#" + strconv.Itoa(moveNum) + " - Move " + moveID + ": " + strconv.Itoa(move.Source) + " -> " + strconv.Itoa(move.Dest))
 	return moveID, nil
+}
+
+func SetupCloseHandler(sc, fc chan int) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func(sc, fc chan int) {
+		<-c
+		log.Println(" / Successful: ", <- sc, " / Failed: ", <- fc)
+		os.Exit(0)
+	}(sc, fc)
 }
 
 

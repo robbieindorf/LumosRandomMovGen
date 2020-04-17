@@ -149,12 +149,12 @@ func checkMoveStatus(wg *sync.WaitGroup, ip , moveID string, successCountChan, f
 	var moveStatus string
 	checkCount := 0
 
-	for moveStatus != "Successful" && moveStatus != "Failed" && checkCount < 5{
+	for moveStatus != "Successful" && moveStatus != "Failed" && checkCount < 15{
 		resp, err := http.Get("http://" + ip + movesURL + "/" + moveID)
 		if err != nil {
 			log.Println("#" + moveID + " - Move" + moveID + " : error checking move status: ", err)
 			checkCount++
-			time.Sleep(30 * time.Second)
+			time.Sleep(10 * time.Second)
 			continue
 		}
 		defer resp.Body.Close()
@@ -162,7 +162,7 @@ func checkMoveStatus(wg *sync.WaitGroup, ip , moveID string, successCountChan, f
 		if err != nil {
 			log.Println("#" + moveID + " - Move" + moveID + " :error parsing move status body: ", err)
 			checkCount++
-			time.Sleep(30 * time.Second)
+			time.Sleep(10 * time.Second)
 			continue
 		}
 
@@ -171,13 +171,13 @@ func checkMoveStatus(wg *sync.WaitGroup, ip , moveID string, successCountChan, f
 		if err != nil {
 			log.Println("#" + moveID + " - Move" + moveID + " :error unmarshalling move status: ", err)
 			checkCount++
-			time.Sleep(30 * time.Second)
+			time.Sleep(10 * time.Second)
 			continue
 		}
 
 		moveStatus = moveResult[0].Status
 		checkCount++
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 
 	if moveStatus == "Successful" {
@@ -192,5 +192,4 @@ func checkMoveStatus(wg *sync.WaitGroup, ip , moveID string, successCountChan, f
 
 	log.Println("Move " + moveID + " status: " + moveStatus)
 
-	wg.Done()
 }
